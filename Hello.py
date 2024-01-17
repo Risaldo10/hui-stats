@@ -29,12 +29,8 @@ def run():
   if 'hui_training' not in st.session_state:
     hui_training = pd.read_csv('trainings_data.csv',delimiter=';')
     hui_training['Number of Practices'] = hui_training.iloc[:,2:].sum(axis=1)
-    hui_training['Player'] = [i for i in np.arange(hui_training.shape[0])]
+    hui_training.rename(columns={'Color':'Player Group'},inplace=True)
     hui_training.index.name = 'Player'  
-    hui_training['Player Name'] = hui_training['Name'].str.split()
-    hui_training['Player Name'] = hui_training['Player Name'].apply(lambda x: ' '.join([x[i] for i in range(len(x)) if i != 1 or len(x) < 4]))
-    hui_training  = hui_training.drop('Name',axis=1)
-    hui_training.rename(columns={'Color':'Player Group','Player Name':'Name'},inplace=True)
     st.session_state['hui_training'] = hui_training
 
   if 'hui_match' not in st.session_state:
