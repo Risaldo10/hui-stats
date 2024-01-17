@@ -25,7 +25,7 @@ LOGGER = get_logger(__name__)
 
 def run():
   st.set_page_config(page_title="HUI Stats",page_icon="👋",layout='wide')
-  st.write("# Welcome to Stats! 👋")
+  st.write("# Welcome to HUI Stats! 👋")
   if 'hui_training' not in st.session_state:
     hui_training = pd.read_csv('training_data.csv',delimiter=';')
     hui_training['Number of Practices'] = hui_training.iloc[:,3:].sum(axis=1)
@@ -45,45 +45,54 @@ def run():
 
     hui_match.sort_values(['Number of Matches'],ascending=False)
     st.session_state['hui_match'] = hui_match
-  
-  st.dataframe(st.session_state['hui_training'])
-  col1, col2, col3, col4 = st.columns(4)
     
   train_order = ['Name', 'Player Group','Number of Practices','Player']
   custom_palette = {"Blå": "blue", "Hvid": "Gray", "Rød": "red",'Grøn':'Green','Lilla':'Purple','Orange':'Orange'}
   
-  
-
+  col1, col2, col3 = st.columns(3)
   # Calculate and add mean lines for each group
   with col1:
-    num_slicer =st.number_input('Show Last:',min_value=1,max_value=76,value=10 )
     add_mean = st.checkbox('Add averages to graph')
   with col2:
-    
     transpose_graph = st.checkbox('Transpose "Axis" in Graph')
 
-  fig, ax = plt.subplots(figsize=(14, 8))
+  
   if transpose_graph: 
     x_name='Name'
     y_name="Number of Practices"
   else:
     x_name="Number of Practices"
     y_name='Name'
-  
-  all_trainings = st.session_state['hui_training'].iloc[:,2:-1]
 
-  hui_temp = st.session_state['hui_training'][st.session_state['hui_training']['Number of Practices'] > num_slicer]
-  st.dataframe(all_trainings.iloc[:,-num_slicer:].sum(axis=1))
-  ax = sns.barplot(y=x_name,  x=y_name, data=hui_temp.iloc[num_slicer:].sort_values(['Number of Practices'],ascending=False), hue='Player Group', palette=custom_palette, ax=ax)
-  ax.set_title('HUI 2017 - Træning (data fra 14 August 2022 til 18 Januar 2024)')
-  ax.tick_params(axis='x', rotation=90) 
+  def barplot(data, x_name, y_name, title,mean=True):
+    fig, ax = plt.subplots(figsize=(14, 8))
+    ax = sns.barplot(y=x_name,  x=y_name, data=data.sort_values(['Number of Practices'],ascending=False), hue='Player Group', palette=custom_palette, ax=ax)
+    ax.set_title(title)
+    ax.tick_params(axis='x', rotation=90) 
   
-  if add_mean:
-    group_means = hui_temp.groupby('Player Group')['Number of Practices'].mean()
+    if mean:
+      group_means = data.groupby('Player Group')['Number of Practices'].mean()
     for i, mean in group_means.items():
       ax.axhline(group_means.loc[i], color=custom_palette[i], linestyle='dashed', linewidth=2)
-  st.pyplot(ax.get_figure())
+    return fig
   
+  fig = barplot(st.session_state['hui_training'], x_name=x_name,y_name=y_name,
+                 title='HUI 2017 - Træning (data fra 14 August 2022 til 18 Januar 2024)',mean= True)
+  st.pyplot(fig)
+  col1, col2, col3 = st.columns(3)
+  with col1:
+    num_slicer =st.number_input('Show Last:',min_value=1,max_value=76,value=76 )
+  all_trainings = st.session_state['hui_training'].iloc[:,2:-1]
+
+  hui_temp = (st.session_state['hui_training'][all_trainings.iloc[:,-num_slicer:].sum(axis=1) > 0])
+  hui_last_train = pd.concat([
+                        hui_temp.iloc[:,0:2],
+                        hui_temp.iloc[:,-num_slicer:].drop('Number of Practices',axis=1)
+                        ],axis=1)
+  hui_last_train['Number of Practices'] = hui_last_train.iloc[:,3:].sum(axis=1)
+  fig = barplot(hui_last_train, x_name=x_name,y_name=y_name,
+                 title='HUI 2017 - De sidste {} træninger'.format(num_slicer),mean= True)
+  st.pyplot(fig)
     # st.pyplot(ax.get_figure())
   # sns.relplot(x='Player',  y="Total", data=hui, hue='Color') 
 
